@@ -1,0 +1,3228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSCode Snake - 贪吃蛇游戏</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Consolas:wght@400;700&display=swap');
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1e1e1e;
+            font-family: 'Consolas', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            color: #cccccc;
+            overflow: hidden;
+        }
+
+        .vscode-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 48px;
+            background: #252526;
+            border-right: 1px solid #3c3c3c;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 0;
+        }
+
+        .sidebar-icon {
+            width: 32px;
+            height: 32px;
+            margin: 4px 0;
+            background: #3c3c3c;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .sidebar-icon:hover {
+            background: #3e3e42;
+        }
+
+        .sidebar-icon.active {
+            background: #094771;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .title-bar {
+            height: 35px;
+            background: #323233;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            border-bottom: 1px solid #3c3c3c;
+        }
+
+        .title-bar-item {
+            margin-right: 10px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .title-bar-item.active {
+            background: #1e1e1e;
+            padding: 2px 8px;
+            border-radius: 3px;
+        }
+
+        .activity-bar {
+            display: flex;
+            align-items: center;
+            padding: 5px 10px;
+            background: #252526;
+            border-bottom: 1px solid #3c3c3c;
+            font-size: 13px;
+        }
+
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px 15px;
+            background: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 3px;
+        }
+
+        .game-title-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .game-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #cccccc;
+            margin-bottom: 5px;
+        }
+
+        .player-title {
+            font-size: 12px;
+            color: #ffd700;
+            font-weight: 600;
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+            animation: titleGlow 2s ease-in-out infinite;
+        }
+
+        .game-difficulty {
+            font-size: 11px;
+            color: #0e639c;
+            margin-top: 3px;
+            font-weight: bold;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        .game-stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .stat-item {
+            font-size: 13px;
+            color: #cccccc;
+        }
+
+        .stat-label {
+            color: #858585;
+        }
+
+        .stat-value {
+            color: #4ec9b0;
+            font-weight: 600;
+        }
+
+        .game-area {
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 3px;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        canvas {
+            border: 1px solid #3e3e42;
+            background: #1e1e1e;
+            border-radius: 3px;
+        }
+
+        .controls {
+            margin-top: 20px;
+            padding: 15px;
+            background: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 3px;
+        }
+
+        .control-title {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #cccccc;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .vscode-button {
+            padding: 6px 12px;
+            background: #0e639c;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .vscode-button:hover {
+            background: #1177bb;
+        }
+
+        .vscode-button:active {
+            background: #0e5a8a;
+        }
+
+        .vscode-button.secondary {
+            background: #3e3e42;
+        }
+
+        .vscode-button.secondary:hover {
+            background: #4e4e52;
+        }
+
+        .controls-info {
+            font-size: 12px;
+            color: #858585;
+            line-height: 1.5;
+        }
+
+        .game-over, .level-up {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(30, 30, 30, 0.95);
+            padding: 20px 30px;
+            border-radius: 5px;
+            border: 1px solid #3e3e42;
+            text-align: center;
+            z-index: 1000;
+        }
+
+        .game-over {
+            background: #252526;
+            border: 2px solid #3e3e42;
+            border-radius: 8px;
+            padding: 30px;
+            color: #ffffff;
+            text-align: center;
+            display: none;
+            min-width: 400px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            z-index: 5000;
+        }
+
+        .game-over-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #ff6b6b;
+        }
+
+        .game-over-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            gap: 20px;
+        }
+
+        .final-score, .final-level {
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 6px;
+            padding: 15px;
+            flex: 1;
+        }
+
+        .score-label, .level-label {
+            font-size: 12px;
+            color: #858585;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .score-value, .level-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4ecdc4;
+        }
+
+        .game-over-leaderboard {
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .leaderboard-preview-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ffd700;
+            text-align: center;
+        }
+
+        .leaderboard-preview-list {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .leaderboard-preview-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #3e3e42;
+            font-size: 14px;
+        }
+
+        .leaderboard-preview-item:last-child {
+            border-bottom: none;
+        }
+
+        .leaderboard-preview-rank {
+            font-weight: bold;
+            color: #ffd700;
+            width: 20px;
+        }
+
+        .leaderboard-preview-name {
+            flex: 1;
+            margin-left: 10px;
+        }
+
+        .leaderboard-preview-score {
+            font-weight: bold;
+            color: #4ecdc4;
+        }
+
+        .leaderboard-preview-current {
+            background: rgba(78, 205, 196, 0.1);
+            border-radius: 4px;
+            padding: 4px 8px;
+        }
+
+        .game-over-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .game-over-buttons .vscode-button {
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+
+        .level-up {
+            color: #4ec9b0;
+            font-size: 18px;
+            display: none;
+            animation: levelUpAnimation 2s ease-in-out;
+        }
+
+        @keyframes levelUpAnimation {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .player-input {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        /* 难度选择界面样式 */
+        .difficulty-select {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .difficulty-cards {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .difficulty-card {
+            background: #1e1e1e;
+            border: 2px solid #3e3e42;
+            border-radius: 8px;
+            padding: 20px;
+            min-width: 180px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .difficulty-card:hover {
+            border-color: #0e639c;
+            transform: translateY(-2px);
+        }
+
+        .difficulty-card.selected {
+            border-color: #0e639c;
+            background: #0e639c20;
+        }
+
+        .difficulty-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .difficulty-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .difficulty-description {
+            font-size: 12px;
+            color: #858585;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .difficulty-speed {
+            font-size: 11px;
+            color: #4ec9b0;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .difficulty-recommend {
+            font-size: 10px;
+            color: #ffd700;
+            opacity: 0.8;
+        }
+
+        /* 排行榜难度标签样式 */
+        .difficulty-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #3e3e42;
+            padding-bottom: 10px;
+        }
+
+        .difficulty-tab {
+            padding: 8px 16px;
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+            color: #858585;
+        }
+
+        .difficulty-tab:hover {
+            background: #2d2d30;
+            border-color: #0e639c;
+            color: #ffffff;
+        }
+
+        .difficulty-tab.active {
+            background: #0e639c;
+            border-color: #0e639c;
+            color: #ffffff;
+        }
+
+        .input-modal {
+            background: #2d2d30;
+            padding: 30px;
+            border-radius: 8px;
+            border: 1px solid #3e3e42;
+            text-align: center;
+            min-width: 300px;
+        }
+
+        .input-title {
+            color: #cccccc;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .player-name-input {
+            width: 100%;
+            padding: 10px;
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            color: #cccccc;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .leaderboard {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2d2d30;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #3e3e42;
+            min-width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1500;
+            display: none;
+        }
+
+        .leaderboard-title {
+            color: #4ec9b0;
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #3e3e42;
+            color: #cccccc;
+            font-size: 14px;
+        }
+
+        .leaderboard-item:last-child {
+            border-bottom: none;
+        }
+
+        .rank {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .background-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.3;
+            transition: opacity 0.5s ease;
+        }
+
+        .explosion {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        @keyframes explosionAnimation {
+            0% { transform: scale(0) rotate(0deg); opacity: 1; }
+            50% { transform: scale(1.5) rotate(180deg); opacity: 0.8; }
+            100% { transform: scale(3) rotate(360deg); opacity: 0; }
+        }
+
+        .food-animation {
+            position: absolute;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        @keyframes eatAnimation {
+            0% { transform: scale(1) rotate(0deg); opacity: 1; }
+            50% { transform: scale(1.5) rotate(180deg); opacity: 0.8; }
+            100% { transform: scale(0) rotate(360deg); opacity: 0; }
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #4ec9b0;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: particleAnimation 0.6s ease-out forwards;
+        }
+
+        @keyframes particleAnimation {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
+        }
+
+        /* 气槽系统样式 */
+        .energy-bar-container {
+            margin-top: 15px;
+            padding: 10px 15px;
+            background: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 3px;
+        }
+
+        .energy-bar-label {
+            color: #4ec9b0;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .energy-bar {
+            width: 100%;
+            height: 20px;
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .energy-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ec9b0 0%, #4da6ff 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 9px;
+        }
+
+        .energy-cells {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            pointer-events: none;
+        }
+
+        .energy-cell {
+            flex: 1;
+            border-right: 1px solid #3e3e42;
+            height: 100%;
+        }
+
+        .energy-cell:last-child {
+            border-right: none;
+        }
+
+        .energy-cell.filled {
+            background: rgba(78, 201, 176, 0.2);
+        }
+
+        .energy-cell.ready {
+            background: rgba(77, 166, 255, 0.3);
+            box-shadow: 0 0 10px rgba(77, 166, 255, 0.5);
+        }
+
+        .energy-skill {
+            margin-top: 8px;
+            text-align: center;
+            animation: skillPulse 1s ease-in-out infinite;
+        }
+
+        .skill-key {
+            background: #0e639c;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .skill-text {
+            color: #4ec9b0;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        @keyframes skillPulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        /* 吸收特技效果 */
+        .absorption-effect {
+            position: absolute;
+            pointer-events: none;
+            z-index: 500;
+        }
+
+        @keyframes absorptionAnimation {
+            0% {
+                transform: scale(0) rotate(0deg);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(3) rotate(180deg);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(6) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .food-absorption {
+            position: absolute;
+            pointer-events: none;
+            z-index: 600;
+            transition: all 0.5s ease-out;
+        }
+
+        /* 升级进度条样式 */
+        .upgrade-bar-container {
+            margin-top: 15px;
+            padding: 10px 15px;
+            background: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 3px;
+        }
+
+        .upgrade-bar-label {
+            color: #ffd700;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .upgrade-bar {
+            width: 100%;
+            height: 20px;
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upgrade-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffd700 0%, #ffed4e 50%, #f39c12 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 9px;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .upgrade-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+        }
+
+        .upgrade-ready {
+            margin-top: 8px;
+            text-align: center;
+            color: #ffd700;
+            font-size: 12px;
+            font-weight: 600;
+            animation: upgradePulse 1s ease-in-out infinite;
+        }
+
+        @keyframes upgradePulse {
+            0%, 100% {
+                opacity: 0.8;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+        }
+
+        /* 升级特效 */
+        .upgrade-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ffd700;
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            z-index: 3000;
+            pointer-events: none;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        }
+
+        @keyframes upgradeAnimation {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+            50% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        /* 成就通知样式 */
+        .achievement-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            padding: 15px;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            min-width: 300px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .achievement-icon {
+            font-size: 40px;
+            flex-shrink: 0;
+        }
+
+        .achievement-content {
+            flex: 1;
+        }
+
+        .achievement-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 5px;
+        }
+
+        .achievement-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .achievement-description {
+            font-size: 12px;
+            opacity: 0.9;
+            line-height: 1.3;
+        }
+
+        @keyframes achievementSlideIn {
+            0% {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes achievementSlideOut {
+            0% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        /* 皮肤解锁提示样式 */
+        .skin-unlock-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 6000;
+        }
+
+        .unlock-content {
+            background: #2d2d30;
+            padding: 40px;
+            border-radius: 15px;
+            border: 2px solid #ffd700;
+            text-align: center;
+            max-width: 400px;
+            animation: unlockModalAnimation 0.5s ease-out;
+        }
+
+        @keyframes unlockModalAnimation {
+            0% {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .unlock-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            animation: bounce 1s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .unlock-title {
+            color: #ffd700;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .unlock-skin-name {
+            color: #4ec9b0;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .unlock-description {
+            color: #cccccc;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .unlock-stats {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .unlock-stats div {
+            color: #858585;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        .unlock-stats span {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        /* 皮肤选择器样式 */
+        .skin-selector {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 8px;
+            min-width: 600px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 2500;
+            display: none;
+        }
+
+        .skin-selector-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #3e3e42;
+        }
+
+        .skin-selector-title {
+            color: #4ec9b0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .skin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .skin-card {
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .skin-card:hover {
+            border-color: #4ec9b0;
+            transform: translateY(-2px);
+        }
+
+        .skin-card.selected {
+            border-color: #ffd700;
+            background: #2d2d30;
+        }
+
+        .skin-card.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .skin-card.locked:hover {
+            border-color: #3e3e42;
+            transform: none;
+        }
+
+        .skin-preview {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .skin-name {
+            color: #cccccc;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .skin-description {
+            color: #858585;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .skin-status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .skin-status.unlocked {
+            background: #4ec9b0;
+            color: white;
+        }
+
+        .skin-status.locked {
+            background: #858585;
+            color: #cccccc;
+        }
+
+        /* 皮肤选择按钮 */
+        .skin-button {
+            margin-top: 10px;
+            padding: 8px 15px;
+            background: #0e639c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .skin-button:hover {
+            background: #1177bb;
+        }
+
+        .skin-button:disabled {
+            background: #858585;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="vscode-container">
+        <div class="sidebar">
+            <div class="sidebar-icon active">🐍</div>
+            <div class="sidebar-icon">📁</div>
+            <div class="sidebar-icon">🔍</div>
+            <div class="sidebar-icon">⚙️</div>
+        </div>
+
+        <div class="main-content">
+            <div class="title-bar">
+                <div class="title-bar-item active">snake.js</div>
+                <div class="title-bar-item">README.md</div>
+                <div class="title-bar-item">package.json</div>
+            </div>
+
+            <div class="activity-bar">
+                <span>🐍 VSCode Snake Game</span>
+                <span style="margin-left: auto; color: #858585;">UTF-8</span>
+                <span style="color: #858585;">JavaScript</span>
+            </div>
+
+            <div class="editor-container">
+                <div class="game-header">
+                    <div class="game-title-container">
+                        <div class="game-title">🐍 VSCode Snake Game</div>
+                        <div class="game-difficulty" id="gameDifficulty">⚖️ 标准模式</div>
+                        <div class="player-title" id="playerTitle">🌱 蛇宝宝</div>
+                    </div>
+                    <div class="game-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Player:</span>
+                            <span class="stat-value" id="playerName">Guest</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Score:</span>
+                            <span class="stat-value" id="score">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Level:</span>
+                            <span class="stat-value" id="level">1</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Progress:</span>
+                            <span class="stat-value"><span id="progress">0</span>/<span id="target">5</span></span>
+                        </div>
+                    </div>
+
+                    <!-- 气槽系统 -->
+                    <div class="energy-bar-container">
+                        <div class="energy-bar-label">⚡ Energy</div>
+                        <div class="energy-bar" id="energyBar">
+                            <div class="energy-fill" id="energyFill"></div>
+                            <div class="energy-cells" id="energyCells"></div>
+                        </div>
+                        <div class="energy-skill" id="energySkill" style="display: none;">
+                            <span class="skill-key">X</span> <span class="skill-text">ABSORB</span>
+                        </div>
+                    </div>
+
+                    <!-- 100分升级进度条 -->
+                    <div class="upgrade-bar-container">
+                        <div class="upgrade-bar-label">🏆 Upgrade Progress</div>
+                        <div class="upgrade-bar" id="upgradeBar">
+                            <div class="upgrade-fill" id="upgradeFill"></div>
+                            <div class="upgrade-progress" id="upgradeProgress">
+                                <span id="upgradeCurrent">0</span> / <span id="upgradeTarget">100</span>
+                            </div>
+                        </div>
+                        <div class="upgrade-ready" id="upgradeReady" style="display: none;">
+                            🎉 READY TO UPGRADE! 🎉
+                        </div>
+                    </div>
+                </div>
+
+                <div class="game-area">
+                    <canvas id="gameCanvas" width="600" height="400"></canvas>
+                    <div class="game-over" id="gameOver">
+                        <div class="game-over-title">🎮 Game Over!</div>
+                        <div class="game-over-stats">
+                            <div class="final-score">
+                                <div class="score-label">最终得分</div>
+                                <div class="score-value" id="finalScore">0</div>
+                            </div>
+                            <div class="final-level">
+                                <div class="level-label">达到等级</div>
+                                <div class="level-value" id="finalLevel">1</div>
+                            </div>
+                        </div>
+                        <div class="game-over-leaderboard">
+                            <div class="leaderboard-preview-title">🏆 本局排行</div>
+                            <div class="leaderboard-preview-list" id="gameOverLeaderboard"></div>
+                        </div>
+                        <div class="game-over-buttons">
+                            <button class="vscode-button" onclick="restartGame()">重新开始</button>
+                            <button class="vscode-button secondary" onclick="showFullLeaderboard()">查看完整排行榜</button>
+                        </div>
+                    </div>
+                    <div class="level-up" id="levelUp">
+                        <div style="font-size: 24px; margin-bottom: 10px;">Level Up!</div>
+                        <div style="font-size: 14px; color: #858585;">Great job!</div>
+                    </div>
+                </div>
+
+                <!-- 玩家输入界面 -->
+                <div class="player-input" id="playerInput">
+                    <div class="input-modal">
+                        <div class="input-title">🐍 VSCode Snake Game</div>
+                        <input type="text" class="player-name-input" id="playerNameInput" placeholder="输入你的玩家名称" maxlength="10">
+                        <div class="button-group">
+                            <button class="vscode-button" id="startWithNameBtn">开始游戏</button>
+                            <button class="vscode-button secondary" id="showLeaderboardBtn">排行榜</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- 难度选择界面 -->
+                <div class="difficulty-select" id="difficultySelect">
+                    <div class="input-modal">
+                        <div class="input-title">🎯 选择难度</div>
+                        <div class="difficulty-cards">
+                            <div class="difficulty-card" data-difficulty="casual">
+                                <div class="difficulty-icon">🌱</div>
+                                <div class="difficulty-name">休闲模式</div>
+                                <div class="difficulty-description">轻松愉快，适合新手</div>
+                                <div class="difficulty-speed">蛇速：慢速</div>
+                                <div class="difficulty-recommend">推荐：新手玩家</div>
+                            </div>
+                            <div class="difficulty-card selected" data-difficulty="standard">
+                                <div class="difficulty-icon">⚖️</div>
+                                <div class="difficulty-name">标准模式</div>
+                                <div class="difficulty-description">平衡体验，挑战适中</div>
+                                <div class="difficulty-speed">蛇速：正常</div>
+                                <div class="difficulty-recommend">推荐：普通玩家</div>
+                            </div>
+                            <div class="difficulty-card" data-difficulty="extreme">
+                                <div class="difficulty-icon">🔥</div>
+                                <div class="difficulty-name">极限模式</div>
+                                <div class="difficulty-description">极限挑战，反应力考验</div>
+                                <div class="difficulty-speed">蛇速：极速</div>
+                                <div class="difficulty-recommend">推荐：硬核玩家</div>
+                            </div>
+                        </div>
+                        <div class="button-group">
+                            <button class="vscode-button" id="confirmDifficultyBtn">确认难度</button>
+                            <button class="vscode-button secondary" id="backToNameBtn">返回上一步</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 排行榜 -->
+                <div class="leaderboard" id="leaderboard">
+                    <div class="leaderboard-title">🏆 排行榜</div>
+                    <div id="leaderboardList"></div>
+                    <div class="button-group" style="margin-top: 15px;">
+                        <button class="vscode-button secondary" id="closeLeaderboardBtn">关闭</button>
+                    </div>
+                </div>
+
+                <!-- 背景图片 -->
+                <img class="background-overlay" id="backgroundImage" src="" alt="background">
+
+                <!-- 皮肤解锁提示 -->
+                <div class="skin-unlock-modal" id="skinUnlockModal">
+                    <div class="unlock-content">
+                        <div class="unlock-icon">🎉</div>
+                        <div class="unlock-title">新皮肤解锁!</div>
+                        <div class="unlock-skin-name" id="unlockSkinName"></div>
+                        <div class="unlock-description" id="unlockDescription"></div>
+                        <div class="unlock-stats">
+                            <div>新纪录: <span id="newRecordLevel"></span> 级</div>
+                            <div>超越: <span id="previousRecord"></span> 级</div>
+                        </div>
+                        <button class="vscode-button" onclick="closeSkinUnlock()">太棒了!</button>
+                    </div>
+                </div>
+
+                <!-- 皮肤选择器 -->
+                <div class="skin-selector" id="skinSelector">
+                    <div class="skin-selector-header">
+                        <div class="skin-selector-title">🎨 选择皮肤</div>
+                        <button class="vscode-button secondary" onclick="closeSkinSelector()">关闭</button>
+                    </div>
+                    <div class="skin-grid" id="skinGrid"></div>
+                </div>
+
+                <div class="controls">
+                    <div class="control-title">Controls</div>
+                    <div class="button-group">
+                        <button class="vscode-button" id="startBtn">Start Game (F5)</button>
+                        <button class="vscode-button secondary" id="pauseBtn">Pause (F6)</button>
+                        <button class="vscode-button secondary" id="restartBtn">Restart (Ctrl+Shift+F5)</button>
+                        <button class="vscode-button secondary" id="skinBtn" onclick="showSkinSelector()">🎨 Skins</button>
+                    </div>
+                    <div class="controls-info">
+                        Use arrow keys to control the snake. Eat food to grow and level up!<br>
+                        Different foods give different points. 🍎 Apple: 10pts | 🧀 Cheese: 15pts | 🥒 Cucumber: 20pts | 👩 Beauty: 25pts<br>
+                        <strong>Energy System:</strong> Eat 10 foods to fill energy bar, then press <strong>X</strong> to absorb all foods within 5 range!<br>
+                        <strong>Upgrade Progress:</strong> Earn 100 points to trigger upgrade bonus and get extra rewards!<br>
+                        <strong>Skin System:</strong> Break records to unlock new snake skins! Current best: <span id="bestLevel">5</span> levels
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level');
+        const progressElement = document.getElementById('progress');
+        const targetElement = document.getElementById('target');
+        const playerNameElement = document.getElementById('playerName');
+        const gameOverElement = document.getElementById('gameOver');
+        const levelUpElement = document.getElementById('levelUp');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const gameArea = document.querySelector('.game-area');
+        const playerInput = document.getElementById('playerInput');
+        const playerNameInput = document.getElementById('playerNameInput');
+        const startWithNameBtn = document.getElementById('startWithNameBtn');
+        const showLeaderboardBtn = document.getElementById('showLeaderboardBtn');
+        const leaderboard = document.getElementById('leaderboard');
+        const leaderboardList = document.getElementById('leaderboardList');
+        const closeLeaderboardBtn = document.getElementById('closeLeaderboardBtn');
+        const backgroundImage = document.getElementById('backgroundImage');
+
+        // 难度系统元素
+        const difficultySelect = document.getElementById('difficultySelect');
+        const confirmDifficultyBtn = document.getElementById('confirmDifficultyBtn');
+        const backToNameBtn = document.getElementById('backToNameBtn');
+
+        // 难度配置
+        const difficultyConfig = {
+            casual: {
+                name: '休闲模式',
+                icon: '🌱',
+                gameSpeed: 200,
+                color: '#4ec9b0'
+            },
+            standard: {
+                name: '标准模式',
+                icon: '⚖️',
+                gameSpeed: 150,
+                color: '#0e639c'
+            },
+            extreme: {
+                name: '极限模式',
+                icon: '🔥',
+                gameSpeed: 100,
+                color: '#ff6b6b'
+            }
+        };
+
+        // 当前游戏难度
+        let currentDifficulty = 'standard';
+        let tempPlayerName = '';
+
+        // 气槽系统元素
+        const energyBar = document.getElementById('energyBar');
+        const energyFill = document.getElementById('energyFill');
+        const energyCells = document.getElementById('energyCells');
+        const energySkill = document.getElementById('energySkill');
+
+        // 升级进度条元素
+        const upgradeBar = document.getElementById('upgradeBar');
+        const upgradeFill = document.getElementById('upgradeFill');
+        const upgradeProgress = document.getElementById('upgradeProgress');
+        const upgradeCurrent = document.getElementById('upgradeCurrent');
+        const upgradeTarget = document.getElementById('upgradeTarget');
+        const upgradeReady = document.getElementById('upgradeReady');
+
+        // 游戏设置
+        const gridSize = 20;
+        const tileCountX = canvas.width / gridSize;
+        const tileCountY = canvas.height / gridSize;
+
+        let snake = [
+            {x: 10, y: 10}
+        ];
+        let direction = {x: 0, y: 0};
+        let foods = [];
+        let bombs = []; // 炸弹数组
+        let score = 0;
+        let level = 1;
+        let levelProgress = 0;
+        let levelTarget = 5;
+        let gameSpeed = 150;
+        let gameRunning = false;
+        let gamePaused = false;
+        let snakeTrail = []; // 蛇的轨迹用于残影效果
+        let currentPlayer = 'Guest'; // 当前玩家
+        let gameStarted = false; // 游戏是否开始
+
+        // 气槽系统变量
+        let energyLevel = 0; // 当前能量等级 (0-10)
+        let maxEnergy = 10; // 最大能量值
+        let skillReady = false; // 特技是否就绪
+        let isAbsorbing = false; // 是否正在使用吸收特技
+
+        // 升级进度条变量
+        let upgradeScore = 0; // 当前升级分数
+        let upgradeThreshold = 100; // 升级所需分数
+        let upgradeBonusCount = 0; // 升级奖励次数
+
+        // 皮肤系统变量
+        let currentSkin = 'default';
+        let skinUnlockModal = document.getElementById('skinUnlockModal');
+        let skinSelector = document.getElementById('skinSelector');
+        let newRecordLevel = document.getElementById('newRecordLevel');
+        let previousRecord = document.getElementById('previousRecord');
+        let unlockSkinName = document.getElementById('unlockSkinName');
+        let unlockDescription = document.getElementById('unlockDescription');
+        let bestLevelElement = document.getElementById('bestLevel');
+
+        // 背景图片数组 - 不同关卡使用不同的背景
+        const backgroundImages = [
+            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1920&h=1080&fit=crop',
+            'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1920&h=1080&fit=crop',
+            'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1920&h=1080&fit=crop',
+            'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1920&h=1080&fit=crop'
+        ];
+
+        // 排行榜数据（分难度存储）
+        let leaderboardData = {
+            casual: JSON.parse(localStorage.getItem('snakeLeaderboard_casual')) || [],
+            standard: JSON.parse(localStorage.getItem('snakeLeaderboard_standard')) || [],
+            extreme: JSON.parse(localStorage.getItem('snakeLeaderboard_extreme')) || []
+        };
+
+        // 当前显示的排行榜难度
+        let currentLeaderboardDifficulty = 'standard';
+
+        // 历史最高等级记录
+        let historicalMaxLevel = parseInt(localStorage.getItem('snakeHistoricalMaxLevel') || '5');
+        let unlockedSkins = JSON.parse(localStorage.getItem('snakeUnlockedSkins') || '[]');
+
+        // 皮肤系统
+        const snakeSkins = [
+            {
+                id: 'default',
+                name: 'Classic VSCode',
+                description: '默认经典皮肤',
+                unlocked: true,
+                headColor: ['#4da6ff', '#007acc', '#005a9e'],
+                bodyColor: ['rgba(120, 220, 200, ', 'rgba(78, 201, 176, ', 'rgba(40, 140, 120, '],
+                logo: 'VS'
+            },
+            {
+                id: 'fire',
+                name: '火焰蛇',
+                description: '达到6级解锁',
+                unlocked: false,
+                headColor: ['#ff6b6b', '#ee5a52', '#dc2626'],
+                bodyColor: ['rgba(255, 107, 107, ', 'rgba(238, 90, 82, ', 'rgba(220, 38, 38, '],
+                logo: '🔥'
+            },
+            {
+                id: 'ice',
+                name: '冰霜蛇',
+                description: '达到8级解锁',
+                unlocked: false,
+                headColor: ['#74c0fc', '#339af0', '#1864ab'],
+                bodyColor: ['rgba(116, 192, 252, ', 'rgba(51, 154, 240, ', 'rgba(24, 100, 171, '],
+                logo: '❄️'
+            },
+            {
+                id: 'nature',
+                name: '自然蛇',
+                description: '达到10级解锁',
+                unlocked: false,
+                headColor: ['#51cf66', '#40c057', '#2b8a3e'],
+                bodyColor: ['rgba(81, 207, 102, ', 'rgba(64, 192, 87, ', 'rgba(43, 138, 62, '],
+                logo: '🌿'
+            },
+            {
+                id: 'galaxy',
+                name: '星河蛇',
+                description: '达到12级解锁',
+                unlocked: false,
+                headColor: ['#cc5de8', '#ae3ec9', '#9c36b5'],
+                bodyColor: ['rgba(204, 93, 232, ', 'rgba(174, 62, 201, ', 'rgba(156, 54, 181, '],
+                logo: '🌌'
+            },
+            {
+                id: 'rainbow',
+                name: '彩虹蛇',
+                description: '达到15级解锁',
+                unlocked: false,
+                headColor: ['#ff6b6b', '#4ec9b0', '#ffd700', '#a78bfa', '#fb7185'],
+                bodyColor: ['rgba(255, 107, 107, ', 'rgba(78, 201, 176, ', 'rgba(255, 215, 0, ', 'rgba(167, 139, 250, ', 'rgba(251, 113, 133, '],
+                logo: '🌈'
+            }
+        ];
+
+        // 食物类型定义
+        const foodTypes = [
+            {emoji: '🍎', name: 'apple', points: 10, color: '#ff0000'},
+            {emoji: '🧀', name: 'cheese', points: 15, color: '#ffd700'},
+            {emoji: '🥒', name: 'cucumber', points: 20, color: '#00ff00'},
+            {emoji: '👩', name: 'beauty', points: 25, color: '#ff69b4'}
+        ];
+
+        // 不同等级的蛇的外观配置
+        const snakeStyles = [
+            // Level 1-2: 基础蓝色
+            {
+                headColor: ['#4da6ff', '#007acc', '#005a9e'],
+                bodyColor: ['rgba(120, 220, 200, ', 'rgba(78, 201, 176, ', 'rgba(40, 140, 120, '],
+                logo: 'VS',
+                eyeColor: '#ffffff'
+            },
+            // Level 3-4: 紫色系
+            {
+                headColor: ['#b794f4', '#9f7aea', '#805ad5'],
+                bodyColor: ['rgba(196, 181, 253, ', 'rgba(167, 139, 250, ', 'rgba(139, 92, 246, '],
+                logo: 'VS',
+                eyeColor: '#e9d8fd'
+            },
+            // Level 5-6: 金色系
+            {
+                headColor: ['#ffd700', '#ffb347', '#ff8c00'],
+                bodyColor: ['rgba(255, 223, 0, ', 'rgba(255, 179, 71, ', 'rgba(255, 140, 0, '],
+                logo: '⭐',
+                eyeColor: '#fff5b4'
+            },
+            // Level 7-8: 红宝石系
+            {
+                headColor: ['#ff6b6b', '#ee5a52', '#dc2626'],
+                bodyColor: ['rgba(255, 107, 107, ', 'rgba(238, 90, 82, ', 'rgba(220, 38, 38, '],
+                logo: '💎',
+                eyeColor: '#fecaca'
+            },
+            // Level 9+: 彩虹系
+            {
+                headColor: ['#ff6b6b', '#4ec9b0', '#ffd700', '#a78bfa', '#fb7185'],
+                bodyColor: ['rgba(255, 107, 107, ', 'rgba(78, 201, 176, ', 'rgba(255, 215, 0, ', 'rgba(167, 139, 250, ', 'rgba(251, 113, 133, '],
+                logo: '👑',
+                eyeColor: '#ffffff'
+            }
+        ];
+
+        // 炸弹类型定义
+        const bombTypes = [
+            {emoji: '💣', name: 'bomb', points: -15, color: '#8B4513'},
+            {emoji: '🔥', name: 'fire', points: -20, color: '#FF4500'},
+            {emoji: '⚡', name: 'lightning', points: -25, color: '#FFD700'}
+        ];
+
+        // 生成单个食物
+        function generateSingleFood() {
+            let newFood;
+            let attempts = 0;
+            const maxAttempts = 100;
+
+            do {
+                newFood = {
+                    x: Math.floor(Math.random() * tileCountX),
+                    y: Math.floor(Math.random() * tileCountY),
+                    type: foodTypes[Math.floor(Math.random() * foodTypes.length)]
+                };
+                attempts++;
+            } while (attempts < maxAttempts && isPositionOccupied(newFood.x, newFood.y));
+
+            return newFood;
+        }
+
+        // 生成单个炸弹
+        function generateSingleBomb() {
+            let newBomb;
+            let attempts = 0;
+            const maxAttempts = 100;
+
+            do {
+                newBomb = {
+                    x: Math.floor(Math.random() * tileCountX),
+                    y: Math.floor(Math.random() * tileCountY),
+                    type: bombTypes[Math.floor(Math.random() * bombTypes.length)]
+                };
+                attempts++;
+            } while (attempts < maxAttempts && isPositionOccupied(newBomb.x, newBomb.y));
+
+            return newBomb;
+        }
+
+        // 检查位置是否被占用
+        function isPositionOccupied(x, y) {
+            for (let segment of snake) {
+                if (segment.x === x && segment.y === y) {
+                    return true;
+                }
+            }
+            for (let food of foods) {
+                if (food.x === x && food.y === y) {
+                    return true;
+                }
+            }
+            for (let bomb of bombs) {
+                if (bomb.x === x && bomb.y === y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // 生成多个食物
+        function generateFoods() {
+            foods = [];
+            const foodCount = Math.min(2 + Math.floor(level / 2), 6);
+
+            for (let i = 0; i < foodCount; i++) {
+                const food = generateSingleFood();
+                if (food) {
+                    foods.push(food);
+                }
+            }
+        }
+
+        // 生成炸弹
+        function generateBombs() {
+            bombs = [];
+            const bombCount = Math.min(1 + Math.floor(level / 3), 3);
+
+            for (let i = 0; i < bombCount; i++) {
+                const bomb = generateSingleBomb();
+                if (bomb) {
+                    bombs.push(bomb);
+                }
+            }
+        }
+
+        // 创建粒子效果
+        function createParticles(x, y, color, count = 8) {
+            const rect = canvas.getBoundingClientRect();
+            for (let i = 0; i < count; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = (rect.left + x * gridSize + gridSize/2) + 'px';
+                particle.style.top = (rect.top + y * gridSize + gridSize/2) + 'px';
+                particle.style.background = color;
+
+                const angle = (i / count) * Math.PI * 2;
+                const distance = 50;
+                particle.style.setProperty('--dx', Math.cos(angle) * distance + 'px');
+                particle.style.setProperty('--dy', Math.sin(angle) * distance + 'px');
+
+                gameArea.appendChild(particle);
+
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.parentNode.removeChild(particle);
+                    }
+                }, 600);
+            }
+        }
+
+        // 创建爆炸效果
+        function createExplosion(x, y, color) {
+            const rect = canvas.getBoundingClientRect();
+            const explosion = document.createElement('div');
+            explosion.className = 'explosion';
+            explosion.style.left = (rect.left + x * gridSize + gridSize/2) + 'px';
+            explosion.style.top = (rect.top + y * gridSize + gridSize/2) + 'px';
+            explosion.style.width = gridSize + 'px';
+            explosion.style.height = gridSize + 'px';
+            explosion.style.background = color;
+            explosion.style.borderRadius = '50%';
+            explosion.style.animation = 'explosionAnimation 0.8s ease-out forwards';
+
+            gameArea.appendChild(explosion);
+
+            // 创建爆炸粒子
+            for (let i = 0; i < 12; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = (rect.left + x * gridSize + gridSize/2) + 'px';
+                particle.style.top = (rect.top + y * gridSize + gridSize/2) + 'px';
+                particle.style.background = color;
+
+                const angle = (i / 12) * Math.PI * 2;
+                const distance = 80;
+                particle.style.setProperty('--dx', Math.cos(angle) * distance + 'px');
+                particle.style.setProperty('--dy', Math.sin(angle) * distance + 'px');
+
+                gameArea.appendChild(particle);
+
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.parentNode.removeChild(particle);
+                    }
+                }, 800);
+            }
+
+            setTimeout(() => {
+                if (explosion.parentNode) {
+                    explosion.parentNode.removeChild(explosion);
+                }
+            }, 800);
+        }
+
+        // 绘制带残影的蛇
+        function drawSnake() {
+            // 更新轨迹
+            snakeTrail.push([...snake]);
+            if (snakeTrail.length > 8) {
+                snakeTrail.shift();
+            }
+
+            // 绘制残影
+            for (let t = 0; t < snakeTrail.length - 1; t++) {
+                const trailSnake = snakeTrail[t];
+                const opacity = (t + 1) / snakeTrail.length * 0.3;
+
+                for (let i = 0; i < trailSnake.length; i++) {
+                    const segment = trailSnake[i];
+                    const x = segment.x * gridSize;
+                    const y = segment.y * gridSize;
+                    const centerX = x + gridSize / 2;
+                    const centerY = y + gridSize / 2;
+
+                    // 尾部逐渐变细
+                    const sizeRatio = Math.max(0.3, 1 - i * 0.1);
+                    const radius = (gridSize / 2 - 1) * sizeRatio * (0.7 + opacity * 0.3);
+
+                    ctx.globalAlpha = opacity;
+                    ctx.fillStyle = '#4ec9b0';
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            ctx.globalAlpha = 1;
+
+            // 绘制主蛇
+            for (let i = 0; i < snake.length; i++) {
+                const segment = snake[i];
+                const x = segment.x * gridSize;
+                const y = segment.y * gridSize;
+                const centerX = x + gridSize / 2;
+                const centerY = y + gridSize / 2;
+
+                if (i === 0) {
+                    // 蛇头 - VSCode风格
+                    drawVSCodeSnakeHead(x, y, centerX, centerY);
+                } else {
+                    // 蛇身 - 逐渐变细
+                    drawVSCodeSnakeBody(x, y, centerX, centerY, i);
+                }
+            }
+        }
+
+        // 绘制VSCode风格的蛇头
+        function drawVSCodeSnakeHead(x, y, centerX, centerY) {
+            // 获取当前选中的皮肤
+            const currentSkinData = snakeSkins.find(skin => skin.id === currentSkin) || snakeSkins[0];
+
+            // 3D头部主体 - 多层圆形创建立体感
+            const gradient = ctx.createRadialGradient(centerX - 2, centerY - 2, 0, centerX, centerY, gridSize / 2);
+
+            if (currentSkinData.headColor.length === 3) {
+                // 普通渐变
+                gradient.addColorStop(0, currentSkinData.headColor[0]);
+                gradient.addColorStop(0.7, currentSkinData.headColor[1]);
+                gradient.addColorStop(1, currentSkinData.headColor[2]);
+            } else {
+                // 彩虹渐变
+                for (let i = 0; i < currentSkinData.headColor.length; i++) {
+                    gradient.addColorStop(i / (currentSkinData.headColor.length - 1), currentSkinData.headColor[i]);
+                }
+            }
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, gridSize / 2 - 1, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 3D高光效果
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.beginPath();
+            ctx.arc(centerX - 3, centerY - 3, gridSize / 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Logo效果
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(currentSkinData.logo, centerX, centerY);
+
+            // 3D眼睛效果
+            const eyeSize = 3;
+            let leftEyeX = centerX - 4;
+            let leftEyeY = centerY - 3;
+            let rightEyeX = centerX + 4;
+            let rightEyeY = centerY - 3;
+
+            if (direction.x === 1) { leftEyeX += 2; rightEyeX += 2; }
+            else if (direction.x === -1) { leftEyeX -= 2; rightEyeX -= 2; }
+            else if (direction.y === -1) { leftEyeY -= 2; rightEyeY -= 2; }
+            else if (direction.y === 1) { leftEyeY += 2; rightEyeY += 2; }
+
+            // 眼白3D效果
+            const eyeGradient = ctx.createRadialGradient(leftEyeX - 1, leftEyeY - 1, 0, leftEyeX, leftEyeY, eyeSize);
+            eyeGradient.addColorStop(0, '#ffffff');
+            eyeGradient.addColorStop(1, '#e0e0e0');
+
+            ctx.fillStyle = eyeGradient;
+            ctx.beginPath();
+            ctx.arc(leftEyeX, leftEyeY, eyeSize, 0, Math.PI * 2);
+            ctx.arc(rightEyeX, rightEyeY, eyeSize, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 眼珠3D效果
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.arc(leftEyeX + 1, leftEyeY + 1, 1.5, 0, Math.PI * 2);
+            ctx.arc(rightEyeX + 1, rightEyeY + 1, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 眼睛高光
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(leftEyeX + 2, leftEyeY, 0.8, 0, Math.PI * 2);
+            ctx.arc(rightEyeX + 2, rightEyeY, 0.8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 绘制VSCode风格的蛇身
+        function drawVSCodeSnakeBody(x, y, centerX, centerY, index) {
+            // 获取当前选中的皮肤
+            const currentSkinData = snakeSkins.find(skin => skin.id === currentSkin) || snakeSkins[0];
+
+            // 逐渐变细效果
+            const sizeRatio = Math.max(0.5, 1 - index * 0.05);
+            const radius = (gridSize / 2 - 2) * sizeRatio;
+
+            // 渐变颜色和3D效果
+            const intensity = Math.max(0.3, 1 - index * 0.1);
+
+            // 3D径向渐变
+            const gradient = ctx.createRadialGradient(
+                centerX - radius * 0.3, centerY - radius * 0.3, 0,
+                centerX, centerY, radius
+            );
+
+            if (currentSkinData.bodyColor.length === 3) {
+                // 普通渐变
+                gradient.addColorStop(0, currentSkinData.bodyColor[0] + intensity + ')');
+                gradient.addColorStop(0.6, currentSkinData.bodyColor[1] + intensity + ')');
+                gradient.addColorStop(1, currentSkinData.bodyColor[2] + intensity + ')');
+            } else {
+                // 彩虹渐变 - 根据蛇身位置选择颜色
+                const colorIndex = index % currentSkinData.bodyColor.length;
+                const baseColor = currentSkinData.bodyColor[colorIndex];
+                gradient.addColorStop(0, baseColor + intensity + ')');
+                gradient.addColorStop(0.6, baseColor + (intensity * 0.8) + ')');
+                gradient.addColorStop(1, baseColor + (intensity * 0.6) + ')');
+            }
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 3D高光效果
+            ctx.fillStyle = `rgba(255, 255, 255, ${intensity * 0.3})`;
+            ctx.beginPath();
+            ctx.arc(centerX - radius * 0.3, centerY - radius * 0.3, radius * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 边框 - 根据皮肤调整颜色
+            const borderIntensity = Math.max(0.2, intensity * 0.8);
+            ctx.strokeStyle = currentSkinData.bodyColor[0] + borderIntensity + ')';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // 3D阴影效果
+            ctx.strokeStyle = `rgba(0, 0, 0, ${intensity * 0.3})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(centerX + 1, centerY + 1, radius, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        // 绘制食物
+        function drawFood() {
+            for (let i = 0; i < foods.length; i++) {
+                const food = foods[i];
+                const x = food.x * gridSize;
+                const y = food.y * gridSize;
+                const centerX = x + gridSize / 2;
+                const centerY = y + gridSize / 2;
+
+                // 绘制食物背景
+                ctx.fillStyle = food.type.color;
+                ctx.globalAlpha = 0.3;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, gridSize / 2 - 1, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 绘制emoji
+                ctx.globalAlpha = 1;
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(food.type.emoji, centerX, centerY);
+
+                // 分数标签
+                ctx.fillStyle = '#4ec9b0';
+                ctx.font = '10px Arial';
+                ctx.fillText(food.type.points, centerX, centerY + 12);
+            }
+        }
+
+        // 绘制炸弹
+        function drawBombs() {
+            for (let i = 0; i < bombs.length; i++) {
+                const bomb = bombs[i];
+                const x = bomb.x * gridSize;
+                const y = bomb.y * gridSize;
+                const centerX = x + gridSize / 2;
+                const centerY = y + gridSize / 2;
+
+                // 炸弹脉冲效果
+                const pulse = Math.sin(Date.now() * 0.005) * 0.2 + 0.8;
+
+                // 绘制炸弹背景
+                ctx.fillStyle = bomb.type.color;
+                ctx.globalAlpha = 0.3 * pulse;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, (gridSize / 2 - 1) * pulse, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 绘制emoji
+                ctx.globalAlpha = 1;
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(bomb.type.emoji, centerX, centerY);
+
+                // 分数标签
+                ctx.fillStyle = '#ff6b6b';
+                ctx.font = '10px Arial';
+                ctx.fillText(bomb.type.points, centerX, centerY + 12);
+            }
+        }
+
+        // 绘制游戏
+        function draw() {
+            // 清空画布
+            ctx.fillStyle = '#1e1e1e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 绘制网格
+            ctx.strokeStyle = '#2d2d30';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i <= tileCountX; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * gridSize, 0);
+                ctx.lineTo(i * gridSize, canvas.height);
+                ctx.stroke();
+            }
+            for (let i = 0; i <= tileCountY; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, i * gridSize);
+                ctx.lineTo(canvas.width, i * gridSize);
+                ctx.stroke();
+            }
+
+            drawSnake();
+            drawFood();
+            drawBombs();
+        }
+
+        // 移动蛇
+        function moveSnake() {
+            const head = {x: snake[0].x + direction.x, y: snake[0].y + direction.y};
+
+            // 检查碰撞墙壁
+            if (head.x < 0 || head.x >= tileCountX || head.y < 0 || head.y >= tileCountY) {
+                gameOver();
+                return;
+            }
+
+            // 检查碰撞自己
+            for (let segment of snake) {
+                if (head.x === segment.x && head.y === segment.y) {
+                    gameOver();
+                    return;
+                }
+            }
+
+            snake.unshift(head);
+
+            // 检查是否吃到食物
+            let foodEaten = false;
+            for (let i = foods.length - 1; i >= 0; i--) {
+                if (head.x === foods[i].x && head.y === foods[i].y) {
+                    const food = foods[i];
+                    score += food.type.points * level;
+                    levelProgress++;
+                    scoreElement.textContent = score;
+                    progressElement.textContent = levelProgress;
+
+                    // 增加能量
+                    addEnergy(1);
+
+                    // 增加升级分数
+                    addUpgradeScore(food.type.points);
+
+                    // 创建粒子效果
+                    createParticles(food.x, food.y, food.type.color);
+
+                    // 移除被吃掉的食物
+                    foods.splice(i, 1);
+                    foodEaten = true;
+
+                    // 更新游戏统计数据
+                    gameStats.totalFoodsEaten++;
+
+                    // 检查成就解锁
+                    checkAchievements();
+
+                    if (levelProgress >= levelTarget) {
+                        levelUp();
+                    }
+                    break;
+                }
+            }
+
+            // 检查是否碰到炸弹
+            let bombHit = false;
+            for (let i = bombs.length - 1; i >= 0; i--) {
+                if (head.x === bombs[i].x && head.y === bombs[i].y) {
+                    const bomb = bombs[i];
+                    score = Math.max(0, score + bomb.type.points);
+                    scoreElement.textContent = score;
+
+                    // 创建爆炸效果
+                    createExplosion(bomb.x, bomb.y, bomb.type.color);
+
+                    // 移除炸弹
+                    bombs.splice(i, 1);
+                    bombHit = true;
+
+                    // 更新游戏统计数据
+                    gameStats.bombsHit++;
+
+                    // 检查成就解锁
+                    checkAchievements();
+                    break;
+                }
+            }
+
+            if (!foodEaten && !bombHit) {
+                snake.pop();
+            }
+
+            // 补充食物
+            if (foods.length < Math.min(2 + Math.floor(level / 2), 6)) {
+                const newFood = generateSingleFood();
+                if (newFood) {
+                    foods.push(newFood);
+                }
+            }
+
+            // 补充炸弹
+            if (bombs.length < Math.min(1 + Math.floor(level / 3), 3)) {
+                const newBomb = generateSingleBomb();
+                if (newBomb) {
+                    bombs.push(newBomb);
+                }
+            }
+        }
+
+        // 关卡提升
+        function levelUp() {
+            const previousLevel = level;
+            level++;
+            levelProgress = 0;
+            levelTarget = 5 + level * 2;
+
+            // 根据难度和等级调整游戏速度
+            const baseSpeed = difficultyConfig[currentDifficulty].gameSpeed;
+            gameSpeed = Math.max(baseSpeed * 0.5, baseSpeed - level * 5);
+
+            levelElement.textContent = level;
+            progressElement.textContent = levelProgress;
+            targetElement.textContent = levelTarget;
+
+            // 更换背景图片
+            const bgIndex = (level - 1) % backgroundImages.length;
+            backgroundImage.src = backgroundImages[bgIndex];
+            backgroundImage.style.opacity = '0.4';
+
+            // 更新玩家称号
+            updatePlayerTitle(level);
+
+            // 检查成就解锁
+            checkAchievements();
+
+            // 检查是否突破历史最高等级
+            let newRecord = false;
+            if (level > historicalMaxLevel) {
+                newRecord = true;
+                const previousMaxLevel = historicalMaxLevel;
+                historicalMaxLevel = level;
+                localStorage.setItem('snakeHistoricalMaxLevel', historicalMaxLevel);
+                bestLevelElement.textContent = historicalMaxLevel;
+
+                // 检查皮肤解锁
+                const newlyUnlocked = checkSkinUnlocks(level);
+                if (newlyUnlocked.length > 0) {
+                    // 如果有新皮肤解锁，暂停游戏
+                    gamePaused = true;
+                    if (pauseBtn) {
+                        pauseBtn.textContent = 'Continue (F6)';
+                    }
+                }
+            }
+
+            // 显示升级信息
+            if (newRecord) {
+                levelUpElement.innerHTML = `
+                    <div style="font-size: 28px; margin-bottom: 10px;">🎉 LEVEL UP! 🎉</div>
+                    <div style="font-size: 16px; color: #ffd700;">NEW RECORD! Level ${level}</div>
+                    <div style="font-size: 14px; color: #858585;">Previous: Level ${previousLevel}</div>
+                `;
+            } else {
+                levelUpElement.innerHTML = `
+                    <div style="font-size: 24px; margin-bottom: 10px;">Level Up!</div>
+                    <div style="font-size: 14px; color: #858585;">Level ${level}</div>
+                `;
+            }
+
+            levelUpElement.style.display = 'block';
+            setTimeout(() => {
+                levelUpElement.style.display = 'none';
+            }, 2000);
+
+            generateFoods();
+            generateBombs();
+        }
+
+        // 游戏结束
+        function gameOver() {
+            gameRunning = false;
+
+            // 显示最终得分和等级
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalLevel').textContent = level;
+
+            // 保存到排行榜
+            if (currentPlayer !== 'Guest' && score > 0) {
+                addToLeaderboard(currentPlayer, score);
+            }
+
+            // 显示游戏结束排行榜
+            showGameOverLeaderboard();
+
+            // 确保游戏结束界面显示在最上层
+            gameOverElement.style.display = 'block';
+            gameOverElement.style.zIndex = '5000';
+
+            // 调试信息
+            console.log('Game Over - Score:', score, 'Level:', level);
+            console.log('Game Over element display:', gameOverElement.style.display);
+        }
+
+        // 游戏循环
+        function gameLoop() {
+            if (!gameRunning || gamePaused) return;
+
+            moveSnake();
+            draw();
+
+            setTimeout(gameLoop, gameSpeed);
+        }
+
+        // 添加到排行榜
+        function addToLeaderboard(name, score) {
+            const entry = {
+                name: name,
+                score: score,
+                level: level,
+                difficulty: currentDifficulty,
+                difficultyName: difficultyConfig[currentDifficulty].name,
+                date: new Date().toLocaleDateString()
+            };
+
+            // 添加到对应难度的排行榜
+            leaderboardData[currentDifficulty].push(entry);
+            leaderboardData[currentDifficulty].sort((a, b) => b.score - a.score);
+            leaderboardData[currentDifficulty] = leaderboardData[currentDifficulty].slice(0, 10); // 只保留前10名
+
+            // 保存到localStorage
+            localStorage.setItem(`snakeLeaderboard_${currentDifficulty}`, JSON.stringify(leaderboardData[currentDifficulty]));
+        }
+
+        // 显示排行榜
+        function showLeaderboard() {
+            // 创建难度切换标签
+            const difficultyTabs = document.createElement('div');
+            difficultyTabs.className = 'difficulty-tabs';
+            difficultyTabs.innerHTML = `
+                <div class="difficulty-tab ${currentLeaderboardDifficulty === 'casual' ? 'active' : ''}" data-difficulty="casual">
+                    🌱 休闲模式
+                </div>
+                <div class="difficulty-tab ${currentLeaderboardDifficulty === 'standard' ? 'active' : ''}" data-difficulty="standard">
+                    ⚖️ 标准模式
+                </div>
+                <div class="difficulty-tab ${currentLeaderboardDifficulty === 'extreme' ? 'active' : ''}" data-difficulty="extreme">
+                    🔥 极限模式
+                </div>
+            `;
+
+            // 绑定标签点击事件
+            difficultyTabs.querySelectorAll('.difficulty-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    currentLeaderboardDifficulty = tab.dataset.difficulty;
+                    showLeaderboard(); // 重新显示排行榜
+                });
+            });
+
+            leaderboardList.innerHTML = '';
+            leaderboardList.appendChild(difficultyTabs);
+
+            const currentData = leaderboardData[currentLeaderboardDifficulty];
+
+            if (currentData.length === 0) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.style.cssText = 'text-align: center; color: #858585; padding: 20px;';
+                emptyDiv.textContent = '暂无记录';
+                leaderboardList.appendChild(emptyDiv);
+            } else {
+                currentData.forEach((entry, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'leaderboard-item';
+
+                    let rankText = `#${index + 1}`;
+                    if (index === 0) rankText = '🥇 ' + rankText;
+                    else if (index === 1) rankText = '🥈 ' + rankText;
+                    else if (index === 2) rankText = '🥉 ' + rankText;
+
+                    item.innerHTML = `
+                        <div>
+                            <span class="rank">${rankText}</span>
+                            <span>${entry.name}</span>
+                        </div>
+                        <div>
+                            <span>${entry.score}分</span>
+                            <span style="color: #858585; margin-left: 10px;">Lv.${entry.level}</span>
+                            <span style="margin-left: 10px;">${difficultyConfig[entry.difficulty || 'standard'].icon}</span>
+                        </div>
+                    `;
+                    leaderboardList.appendChild(item);
+                });
+            }
+
+            leaderboard.style.display = 'block';
+        }
+
+        // 隐藏排行榜
+        function hideLeaderboard() {
+            leaderboard.style.display = 'none';
+        }
+
+        // 开始游戏
+        function startGame() {
+            snake = [{x: 10, y: 10}];
+            direction = {x: 1, y: 0};
+            foods = [];
+            bombs = [];
+            score = 0;
+            level = 1;
+            levelProgress = 0;
+            levelTarget = 5;
+
+            // 根据难度设置游戏速度
+            gameSpeed = difficultyConfig[currentDifficulty].gameSpeed;
+            snakeTrail = [];
+
+            // 重置气槽系统
+            energyLevel = 0;
+            skillReady = false;
+            isAbsorbing = false;
+            updateEnergyDisplay();
+
+            // 重置游戏统计数据
+            resetGameStats();
+
+            // 更新初始称号
+            updatePlayerTitle(level);
+
+            // 重置升级进度条
+            upgradeScore = 0;
+            upgradeBonusCount = 0;
+            updateUpgradeDisplay();
+
+            scoreElement.textContent = score;
+            levelElement.textContent = level;
+            progressElement.textContent = levelProgress;
+            targetElement.textContent = levelTarget;
+            gameRunning = true;
+            gamePaused = false;
+            gameOverElement.style.display = 'none';
+
+            // 隐藏排行榜
+            leaderboard.style.display = 'none';
+
+            generateFoods();
+            generateBombs();
+            draw();
+
+            setTimeout(() => {
+                if (gameRunning) {
+                    gameLoop();
+                }
+            }, 500);
+        }
+
+        // 暂停/继续游戏
+        function togglePause() {
+            if (!gameRunning) return;
+
+            gamePaused = !gamePaused;
+            pauseBtn.textContent = gamePaused ? 'Continue (F6)' : 'Pause (F6)';
+
+            if (!gamePaused) {
+                gameLoop();
+            }
+        }
+
+        // 开始带名称的游戏
+        function startWithName() {
+            const name = playerNameInput.value.trim();
+            if (name) {
+                tempPlayerName = name;
+                playerInput.style.display = 'none';
+                difficultySelect.style.display = 'flex';
+            } else {
+                alert('请输入玩家名称！');
+            }
+        }
+
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            if (!gameStarted) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    startWithName();
+                }
+                return;
+            }
+
+            if (!gameRunning || gamePaused) {
+                if (e.key === 'F5') {
+                    e.preventDefault();
+                    startGame();
+                }
+                return;
+            }
+
+            // 特技触发
+            if (e.key === 'x' || e.key === 'X') {
+                e.preventDefault();
+                useSkill();
+                return;
+            }
+
+            switch(e.key) {
+                case 'ArrowUp':
+                    if (direction.y === 0) {
+                        direction = {x: 0, y: -1};
+                    }
+                    break;
+                case 'ArrowDown':
+                    if (direction.y === 0) {
+                        direction = {x: 0, y: 1};
+                    }
+                    break;
+                case 'ArrowLeft':
+                    if (direction.x === 0) {
+                        direction = {x: -1, y: 0};
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (direction.x === 0) {
+                        direction = {x: 1, y: 0};
+                    }
+                    break;
+                case 'F5':
+                    e.preventDefault();
+                    startGame();
+                    break;
+                case 'F6':
+                    e.preventDefault();
+                    togglePause();
+                    break;
+            }
+        });
+
+        // 按钮事件
+        startBtn.addEventListener('click', () => {
+            if (!gameStarted) {
+                playerInput.style.display = 'flex';
+            } else {
+                startGame();
+            }
+        });
+        pauseBtn.addEventListener('click', togglePause);
+        restartBtn.addEventListener('click', restartGame);
+        startWithNameBtn.addEventListener('click', startWithName);
+        showLeaderboardBtn.addEventListener('click', showLeaderboard);
+        closeLeaderboardBtn.addEventListener('click', hideLeaderboard);
+
+        // 玩家名称输入框回车事件
+        playerNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                startWithName();
+            }
+        });
+
+        // 初始化气槽UI
+        function initEnergyBar() {
+            // 创建10个能量格子
+            energyCells.innerHTML = '';
+            for (let i = 0; i < maxEnergy; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'energy-cell';
+                cell.id = `energy-cell-${i}`;
+                energyCells.appendChild(cell);
+            }
+            updateEnergyDisplay();
+        }
+
+        // 更新能量显示
+        function updateEnergyDisplay() {
+            const fillPercentage = (energyLevel / maxEnergy) * 100;
+            energyFill.style.width = fillPercentage + '%';
+
+            // 更新每个格子的状态
+            for (let i = 0; i < maxEnergy; i++) {
+                const cell = document.getElementById(`energy-cell-${i}`);
+                cell.className = 'energy-cell';
+                if (i < energyLevel) {
+                    cell.classList.add('filled');
+                    if (energyLevel === maxEnergy) {
+                        cell.classList.add('ready');
+                    }
+                }
+            }
+
+            // 显示/隐藏特技提示
+            if (energyLevel === maxEnergy && !isAbsorbing) {
+                energySkill.style.display = 'block';
+                skillReady = true;
+            } else {
+                energySkill.style.display = 'none';
+                skillReady = false;
+            }
+        }
+
+        // 增加能量
+        function addEnergy(amount) {
+            if (!isAbsorbing) {
+                energyLevel = Math.min(energyLevel + amount, maxEnergy);
+                updateEnergyDisplay();
+            }
+        }
+
+        // 使用特技
+        function useSkill() {
+            if (skillReady && !isAbsorbing) {
+                performAbsorption();
+            }
+        }
+
+        // 执行吸收特技
+        function performAbsorption() {
+            isAbsorbing = true;
+            skillReady = false;
+            energySkill.style.display = 'none';
+
+            // 更新游戏统计数据
+            gameStats.energyAbsorptions++;
+
+            const head = snake[0];
+            const absorptionRange = 5; // 吸收范围
+
+            // 创建吸收特效
+            createAbsorptionEffect(head.x, head.y);
+
+            // 收集范围内的所有食物
+            let absorbedFoods = [];
+            for (let i = foods.length - 1; i >= 0; i--) {
+                const food = foods[i];
+                const distance = Math.abs(food.x - head.x) + Math.abs(food.y - head.y);
+
+                if (distance <= absorptionRange) {
+                    absorbedFoods.push(food);
+                    foods.splice(i, 1);
+
+                    // 计算得分
+                    score += food.type.points * level * 2; // 特技得分为2倍
+
+                    // 增加升级分数（吸收特技也为双倍升级分数）
+                    addUpgradeScore(food.type.points * 2);
+
+                    // 创建食物吸收动画
+                    createFoodAbsorption(food.x, food.y, head.x, head.y, food.type.color);
+                }
+            }
+
+            // 更新分数显示
+            scoreElement.textContent = score;
+
+            // 显示吸收效果
+            showAbsorptionInfo(absorbedFoods.length);
+
+            // 清空气槽
+            energyLevel = 0;
+            updateEnergyDisplay();
+
+            // 检查成就解锁
+            checkAchievements();
+
+            // 延迟后恢复正常状态
+            setTimeout(() => {
+                isAbsorbing = false;
+            }, 1500);
+        }
+
+        // 创建吸收特效
+        function createAbsorptionEffect(x, y) {
+            const rect = canvas.getBoundingClientRect();
+            const effect = document.createElement('div');
+            effect.className = 'absorption-effect';
+            effect.style.left = (rect.left + x * gridSize + gridSize/2) + 'px';
+            effect.style.top = (rect.top + y * gridSize + gridSize/2) + 'px';
+            effect.style.width = (gridSize * 10) + 'px';
+            effect.style.height = (gridSize * 10) + 'px';
+            effect.style.background = 'radial-gradient(circle, rgba(78, 201, 176, 0.8) 0%, rgba(77, 166, 255, 0.6) 50%, transparent 100%)';
+            effect.style.borderRadius = '50%';
+            effect.style.animation = 'absorptionAnimation 1.5s ease-out forwards';
+
+            gameArea.appendChild(effect);
+
+            setTimeout(() => {
+                if (effect.parentNode) {
+                    effect.parentNode.removeChild(effect);
+                }
+            }, 1500);
+        }
+
+        // 创建食物吸收动画
+        function createFoodAbsorption(fromX, fromY, toX, toY, color) {
+            const rect = canvas.getBoundingClientRect();
+            const foodElement = document.createElement('div');
+            foodElement.className = 'food-absorption';
+            foodElement.style.left = (rect.left + fromX * gridSize + gridSize/2) + 'px';
+            foodElement.style.top = (rect.top + fromY * gridSize + gridSize/2) + 'px';
+            foodElement.style.width = gridSize + 'px';
+            foodElement.style.height = gridSize + 'px';
+            foodElement.style.background = color;
+            foodElement.style.borderRadius = '50%';
+            foodElement.style.fontSize = '16px';
+            foodElement.style.textAlign = 'center';
+            foodElement.style.lineHeight = gridSize + 'px';
+            foodElement.textContent = '✨';
+
+            gameArea.appendChild(foodElement);
+
+            // 触发动画
+            setTimeout(() => {
+                foodElement.style.left = (rect.left + toX * gridSize + gridSize/2) + 'px';
+                foodElement.style.top = (rect.top + toY * gridSize + gridSize/2) + 'px';
+                foodElement.style.transform = 'scale(0)';
+                foodElement.style.opacity = '0';
+            }, 50);
+
+            setTimeout(() => {
+                if (foodElement.parentNode) {
+                    foodElement.parentNode.removeChild(foodElement);
+                }
+            }, 500);
+        }
+
+        // 显示吸收信息
+        function showAbsorptionInfo(count) {
+            const info = document.createElement('div');
+            info.style.position = 'absolute';
+            info.style.top = '50%';
+            info.style.left = '50%';
+            info.style.transform = 'translate(-50%, -50%)';
+            info.style.color = '#4ec9b0';
+            info.style.fontSize = '24px';
+            info.style.fontWeight = 'bold';
+            info.style.textAlign = 'center';
+            info.style.zIndex = '2000';
+            info.style.animation = 'absorptionAnimation 1s ease-out forwards';
+            info.innerHTML = `ABSORBED!<br><span style="font-size: 16px; color: #858585;">${count} foods x2 score</span>`;
+
+            gameArea.appendChild(info);
+
+            setTimeout(() => {
+                if (info.parentNode) {
+                    info.parentNode.removeChild(info);
+                }
+            }, 1000);
+        }
+
+        // 初始化升级进度条
+        function initUpgradeBar() {
+            updateUpgradeDisplay();
+        }
+
+        // 更新升级进度显示
+        function updateUpgradeDisplay() {
+            const fillPercentage = (upgradeScore / upgradeThreshold) * 100;
+            upgradeFill.style.width = fillPercentage + '%';
+            upgradeCurrent.textContent = upgradeScore;
+
+            // 显示/隐藏升级就绪提示
+            if (upgradeScore >= upgradeThreshold) {
+                upgradeReady.style.display = 'block';
+            } else {
+                upgradeReady.style.display = 'none';
+            }
+        }
+
+        // 增加升级分数
+        function addUpgradeScore(points) {
+            const previousScore = upgradeScore;
+            upgradeScore += points;
+
+            // 检查是否达到升级阈值
+            if (previousScore < upgradeThreshold && upgradeScore >= upgradeThreshold) {
+                triggerUpgradeBonus();
+            }
+
+            updateUpgradeDisplay();
+        }
+
+        // 触发升级奖励
+        function triggerUpgradeBonus() {
+            upgradeBonusCount++;
+
+            // 显示升级特效
+            showUpgradeEffect();
+
+            // 给予奖励：可以是一些特殊效果，比如暂时无敌、额外分数等
+            score += 50; // 额外奖励分数
+            scoreElement.textContent = score;
+
+            // 重置升级进度
+            upgradeScore = 0;
+            updateUpgradeDisplay();
+        }
+
+        // 显示升级特效
+        function showUpgradeEffect() {
+            const effect = document.createElement('div');
+            effect.className = 'upgrade-effect';
+            effect.innerHTML = `
+                <div>🎉 UPGRADE! 🎉</div>
+                <div style="font-size: 24px; margin-top: 10px;">Bonus +50</div>
+                <div style="font-size: 16px; margin-top: 5px;">Total Upgrades: ${upgradeBonusCount}</div>
+            `;
+            effect.style.animation = 'upgradeAnimation 2s ease-out forwards';
+
+            gameArea.appendChild(effect);
+
+            setTimeout(() => {
+                if (effect.parentNode) {
+                    effect.parentNode.removeChild(effect);
+                }
+            }, 2000);
+        }
+
+        // 初始化皮肤系统
+        function initSkinSystem() {
+            // 加载已解锁的皮肤
+            loadUnlockedSkins();
+
+            // 加载当前选择的皮肤
+            currentSkin = localStorage.getItem('snakeCurrentSkin') || 'default';
+
+            // 更新最佳等级显示
+            bestLevelElement.textContent = historicalMaxLevel;
+
+            // 更新皮肤选择器
+            updateSkinSelector();
+        }
+
+        // 加载已解锁的皮肤
+        function loadUnlockedSkins() {
+            unlockedSkins = JSON.parse(localStorage.getItem('snakeUnlockedSkins') || '["default"]');
+
+            // 更新皮肤数组
+            snakeSkins.forEach(skin => {
+                skin.unlocked = unlockedSkins.includes(skin.id);
+            });
+        }
+
+        // 保存已解锁的皮肤
+        function saveUnlockedSkins() {
+            localStorage.setItem('snakeUnlockedSkins', JSON.stringify(unlockedSkins));
+        }
+
+        // 检查皮肤解锁
+        function checkSkinUnlocks(newLevel) {
+            let newlyUnlockedSkins = [];
+
+            snakeSkins.forEach(skin => {
+                if (!skin.unlocked && shouldUnlockSkin(skin.id, newLevel)) {
+                    skin.unlocked = true;
+                    newlyUnlockedSkins.push(skin);
+                    if (!unlockedSkins.includes(skin.id)) {
+                        unlockedSkins.push(skin.id);
+                    }
+                }
+            });
+
+            if (newlyUnlockedSkins.length > 0) {
+                saveUnlockedSkins();
+                // 显示最新的皮肤解锁
+                const latestSkin = newlyUnlockedSkins[newlyUnlockedSkins.length - 1];
+                showSkinUnlock(latestSkin, newLevel);
+            }
+
+            return newlyUnlockedSkins;
+        }
+
+        // 判断是否应该解锁皮肤
+        function shouldUnlockSkin(skinId, level) {
+            const unlockRequirements = {
+                'fire': 6,
+                'ice': 8,
+                'nature': 10,
+                'galaxy': 12,
+                'rainbow': 15
+            };
+            return level >= unlockRequirements[skinId];
+        }
+
+        // 显示皮肤解锁提示
+        function showSkinUnlock(skin, newLevel) {
+            // 暂停游戏
+            gamePaused = true;
+
+            // 显示解锁信息
+            unlockSkinName.textContent = skin.name;
+            unlockDescription.textContent = skin.description;
+            newRecordLevel.textContent = newLevel;
+            previousRecord.textContent = historicalMaxLevel;
+            skinUnlockModal.style.display = 'flex';
+
+            // 更新暂停按钮状态
+            if (pauseBtn) {
+                pauseBtn.textContent = 'Continue (F6)';
+            }
+        }
+
+        // 关闭皮肤解锁提示
+        function closeSkinUnlock() {
+            skinUnlockModal.style.display = 'none';
+
+            // 恢复游戏
+            gamePaused = false;
+
+            // 更新暂停按钮状态
+            if (pauseBtn) {
+                pauseBtn.textContent = 'Pause (F6)';
+            }
+
+            // 如果游戏还在运行，恢复游戏循环
+            if (gameRunning) {
+                gameLoop();
+            }
+        }
+
+        // 更新皮肤选择器
+        function updateSkinSelector() {
+            const skinGrid = document.getElementById('skinGrid');
+            skinGrid.innerHTML = '';
+
+            snakeSkins.forEach(skin => {
+                const skinCard = document.createElement('div');
+                skinCard.className = `skin-card ${skin.unlocked ? '' : 'locked'} ${currentSkin === skin.id ? 'selected' : ''}`;
+
+                skinCard.innerHTML = `
+                    <div class="skin-preview">${skin.logo}</div>
+                    <div class="skin-name">${skin.name}</div>
+                    <div class="skin-description">${skin.description}</div>
+                    <div class="skin-status ${skin.unlocked ? 'unlocked' : 'locked'}">
+                        ${skin.unlocked ? '已解锁' : '未解锁'}
+                    </div>
+                    ${skin.unlocked ? `<button class="skin-button" onclick="selectSkin('${skin.id}')">选择</button>` : ''}
+                `;
+
+                skinGrid.appendChild(skinCard);
+            });
+        }
+
+        // 选择皮肤
+        function selectSkin(skinId) {
+            if (unlockedSkins.includes(skinId)) {
+                currentSkin = skinId;
+                localStorage.setItem('snakeCurrentSkin', skinId);
+                updateSkinSelector();
+            }
+        }
+
+        // 显示皮肤选择器
+        function showSkinSelector() {
+            skinSelector.style.display = 'block';
+        }
+
+        // 关闭皮肤选择器
+        function closeSkinSelector() {
+            skinSelector.style.display = 'none';
+        }
+
+        // 获取排行榜数据
+        function getLeaderboard() {
+            return leaderboardData[currentDifficulty] || [];
+        }
+
+        // 显示游戏结束排行榜
+        function showGameOverLeaderboard() {
+            try {
+                const gameOverLeaderboard = document.getElementById('gameOverLeaderboard');
+                if (!gameOverLeaderboard) {
+                    console.error('gameOverLeaderboard element not found');
+                    return;
+                }
+
+                const leaderboard = getLeaderboard();
+                if (!leaderboard) {
+                    console.error('Leaderboard data not available');
+                    return;
+                }
+
+                gameOverLeaderboard.innerHTML = '';
+
+            // 只显示前5名
+            const top5 = leaderboard.slice(0, 5);
+
+            top5.forEach((entry, index) => {
+                const item = document.createElement('div');
+                item.className = 'leaderboard-preview-item';
+
+                // 如果是当前玩家，高亮显示
+                if (entry.name === currentPlayer && entry.score === score) {
+                    item.classList.add('leaderboard-preview-current');
+                }
+
+                item.innerHTML = `
+                    <div class="leaderboard-preview-rank">#${index + 1}</div>
+                    <div class="leaderboard-preview-name">${entry.name}</div>
+                    <div class="leaderboard-preview-score">${entry.score}</div>
+                `;
+
+                gameOverLeaderboard.appendChild(item);
+            });
+
+            // 如果当前玩家不在前5名，但分数大于0，显示当前玩家
+            if (currentPlayer !== 'Guest' && score > 0) {
+                const currentPlayerRank = leaderboard.findIndex(entry => entry.name === currentPlayer && entry.score === score);
+                if (currentPlayerRank >= 5) {
+                    const item = document.createElement('div');
+                    item.className = 'leaderboard-preview-item leaderboard-preview-current';
+                    item.innerHTML = `
+                        <div class="leaderboard-preview-rank">#${currentPlayerRank + 1}</div>
+                        <div class="leaderboard-preview-name">${currentPlayer}</div>
+                        <div class="leaderboard-preview-score">${score}</div>
+                    `;
+                    gameOverLeaderboard.appendChild(item);
+                }
+            }
+            } catch (error) {
+                console.error('Error in showGameOverLeaderboard:', error);
+            }
+        }
+
+        // 重新开始游戏
+        function restartGame() {
+            gameOverElement.style.display = 'none';
+            startGame();
+        }
+
+        // 显示完整排行榜
+        function showFullLeaderboard() {
+            gameOverElement.style.display = 'none';
+            showLeaderboard();
+        }
+
+        // 称号系统 - 根据等级更新玩家称号
+        function updatePlayerTitle(level) {
+            const titles = {
+                1: "🌱 蛇宝宝",
+                2: "🐍 小青蛇",
+                3: "🌿 绿叶蛇",
+                4: "⚡ 闪电蛇",
+                5: "🔥 火焰蛇",
+                6: "❄️ 冰霜蛇",
+                7: "🌊 波浪蛇",
+                8: "🌟 星光蛇",
+                9: "👑 王者蛇",
+                10: "🐉 龙蛇",
+                12: "⚔️ 战神蛇",
+                15: "🌈 彩虹蛇",
+                20: "💎 钻石蛇",
+                25: "🔮 神秘蛇",
+                30: "👁️ 全知蛇"
+            };
+
+            let currentTitle = "🌱 蛇宝宝"; // 默认称号
+
+            // 找到当前等级对应的最高称号
+            for (let [minLevel, title] of Object.entries(titles)) {
+                if (level >= parseInt(minLevel)) {
+                    currentTitle = title;
+                }
+            }
+
+            // 更新称号显示
+            const playerTitle = document.getElementById('playerTitle');
+            if (playerTitle) {
+                playerTitle.textContent = currentTitle;
+            }
+
+            return currentTitle;
+        }
+
+        // 成就系统数据
+        const achievements = [
+            {
+                id: 'first_level',
+                name: '初出茅庐',
+                description: '达到等级2',
+                icon: '🎯',
+                condition: (level, score) => level >= 2,
+                unlocked: false
+            },
+            {
+                id: 'speed_demon',
+                name: '速度恶魔',
+                description: '在30秒内吃掉10个食物',
+                icon: '⚡',
+                condition: (level, score, gameStats) => gameStats.foodsEatenIn30Seconds >= 10,
+                unlocked: false
+            },
+            {
+                id: 'level_master',
+                name: '等级大师',
+                description: '达到等级6',
+                icon: '🏆',
+                condition: (level, score) => level >= 6,
+                unlocked: false
+            },
+            {
+                id: 'score_hunter',
+                name: '分数猎手',
+                description: '单局得分超过500',
+                icon: '🎯',
+                condition: (level, score) => score >= 500,
+                unlocked: false
+            },
+            {
+                id: 'bomb_survivor',
+                name: '炸弹幸存者',
+                description: '游戏结束后得分仍为正数',
+                icon: '💣',
+                condition: (level, score, gameStats) => gameStats.bombsHit > 0 && score > 0,
+                unlocked: false
+            },
+            {
+                id: 'energy_master',
+                name: '能量大师',
+                description: '单局使用能量吸收超过5次',
+                icon: '⚡',
+                condition: (level, score, gameStats) => gameStats.energyAbsorptions >= 5,
+                unlocked: false
+            },
+            {
+                id: 'level_ten',
+                name: '十级王者',
+                description: '达到等级10',
+                icon: '👑',
+                condition: (level, score) => level >= 10,
+                unlocked: false
+            },
+            {
+                id: 'perfect_game',
+                name: '完美游戏',
+                description: '达到等级15且没有撞到任何炸弹',
+                icon: '⭐',
+                condition: (level, score, gameStats) => level >= 15 && gameStats.bombsHit === 0,
+                unlocked: false
+            },
+            {
+                id: 'food_collector',
+                name: '食物收集者',
+                description: '单局吃掉100个食物',
+                icon: '🍎',
+                condition: (level, score, gameStats) => gameStats.totalFoodsEaten >= 100,
+                unlocked: false
+            },
+            {
+                id: 'legendary_snake',
+                name: '传奇贪吃蛇',
+                description: '达到等级20',
+                icon: '🐉',
+                condition: (level, score) => level >= 20,
+                unlocked: false
+            }
+        ];
+
+        // 游戏统计数据
+        let gameStats = {
+            foodsEatenIn30Seconds: 0,
+            foodTimer: 0,
+            energyAbsorptions: 0,
+            bombsHit: 0,
+            totalFoodsEaten: 0,
+            gameStartTime: 0
+        };
+
+        // 加载已解锁的成就
+        function loadAchievements() {
+            const savedAchievements = localStorage.getItem('snakeAchievements');
+            if (savedAchievements) {
+                const unlockedIds = JSON.parse(savedAchievements);
+                achievements.forEach(achievement => {
+                    achievement.unlocked = unlockedIds.includes(achievement.id);
+                });
+            }
+        }
+
+        // 保存已解锁的成就
+        function saveAchievements() {
+            const unlockedIds = achievements.filter(a => a.unlocked).map(a => a.id);
+            localStorage.setItem('snakeAchievements', JSON.stringify(unlockedIds));
+        }
+
+        // 检查成就解锁条件
+        function checkAchievements() {
+            const newlyUnlocked = [];
+
+            achievements.forEach(achievement => {
+                if (!achievement.unlocked) {
+                    try {
+                        if (achievement.condition(level, score, gameStats)) {
+                            achievement.unlocked = true;
+                            newlyUnlocked.push(achievement);
+                        }
+                    } catch (e) {
+                        // 成就条件检查失败，跳过
+                    }
+                }
+            });
+
+            if (newlyUnlocked.length > 0) {
+                saveAchievements();
+                // 显示成就解锁通知
+                newlyUnlocked.forEach((achievement, index) => {
+                    setTimeout(() => {
+                        showAchievementUnlock(achievement);
+                    }, index * 1000); // 错开显示时间
+                });
+            }
+
+            return newlyUnlocked.length > 0;
+        }
+
+        // 显示成就解锁特效
+        function showAchievementUnlock(achievement) {
+            const notification = document.createElement('div');
+            notification.className = 'achievement-notification';
+            notification.innerHTML = `
+                <div class="achievement-icon">${achievement.icon}</div>
+                <div class="achievement-content">
+                    <div class="achievement-title">成就解锁！</div>
+                    <div class="achievement-name">${achievement.name}</div>
+                    <div class="achievement-description">${achievement.description}</div>
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+
+            // 添加CSS动画
+            notification.style.animation = 'achievementSlideIn 0.5s ease-out';
+
+            // 3秒后开始淡出
+            setTimeout(() => {
+                notification.style.animation = 'achievementSlideOut 0.5s ease-out forwards';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 500);
+            }, 3000);
+        }
+
+        // 重置游戏统计数据
+        function resetGameStats() {
+            gameStats = {
+                foodsEatenIn30Seconds: 0,
+                foodTimer: 0,
+                energyAbsorptions: 0,
+                bombsHit: 0,
+                totalFoodsEaten: 0,
+                gameStartTime: Date.now()
+            };
+        }
+
+        // 更新游戏统计数据
+        function updateGameStats() {
+            // 更新30秒内吃食物数量
+            if (Date.now() - gameStats.gameStartTime < 30000) {
+                // 30秒内的计时器逻辑
+            } else {
+                gameStats.foodsEatenIn30Seconds = 0;
+            }
+        }
+
+        // 初始化成就系统
+        function initAchievementSystem() {
+            loadAchievements();
+        }
+
+        // 初始化难度系统
+        function initDifficultySystem() {
+            // 数据迁移：将旧的排行榜数据迁移到标准模式
+            migrateLegacyLeaderboardData();
+
+            // 绑定难度选择事件
+            document.querySelectorAll('.difficulty-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    // 移除其他卡片的选中状态
+                    document.querySelectorAll('.difficulty-card').forEach(c => c.classList.remove('selected'));
+                    // 添加当前卡片的选中状态
+                    card.classList.add('selected');
+                    // 保存选择的难度
+                    currentDifficulty = card.dataset.difficulty;
+                });
+            });
+
+            // 绑定确认难度按钮
+            confirmDifficultyBtn.addEventListener('click', confirmDifficulty);
+
+            // 绑定返回按钮
+            backToNameBtn.addEventListener('click', backToNameInput);
+
+            // 隐藏难度选择界面
+            difficultySelect.style.display = 'none';
+        }
+
+        // 数据迁移：将旧的排行榜数据迁移到标准模式
+        function migrateLegacyLeaderboardData() {
+            const legacyData = localStorage.getItem('snakeLeaderboard');
+            if (legacyData && !localStorage.getItem('snakeLeaderboard_standard')) {
+                try {
+                    const parsedData = JSON.parse(legacyData);
+                    // 为旧数据添加难度信息，默认为标准模式
+                    const migratedData = parsedData.map(entry => ({
+                        ...entry,
+                        difficulty: 'standard',
+                        difficultyName: '标准模式'
+                    }));
+                    leaderboardData.standard = migratedData;
+                    localStorage.setItem('snakeLeaderboard_standard', JSON.stringify(migratedData));
+                    console.log('成功迁移排行榜数据到标准模式');
+                } catch (e) {
+                    console.error('迁移排行榜数据失败:', e);
+                }
+            }
+        }
+
+        // 确认难度选择
+        function confirmDifficulty() {
+            currentPlayer = tempPlayerName;
+            playerNameElement.textContent = currentPlayer;
+
+            // 更新难度显示
+            const gameDifficulty = document.getElementById('gameDifficulty');
+            if (gameDifficulty) {
+                const config = difficultyConfig[currentDifficulty];
+                gameDifficulty.textContent = `${config.icon} ${config.name}`;
+                gameDifficulty.style.color = config.color;
+            }
+
+            difficultySelect.style.display = 'none';
+            gameStarted = true;
+            startGame();
+        }
+
+        // 返回名称输入
+        function backToNameInput() {
+            difficultySelect.style.display = 'none';
+            playerInput.style.display = 'flex';
+        }
+
+        // 初始化游戏
+        initEnergyBar();
+        initUpgradeBar();
+        initSkinSystem();
+        initAchievementSystem();
+        initDifficultySystem();
+        generateFoods();
+        draw();
+    </script>
+</body>
+</html>

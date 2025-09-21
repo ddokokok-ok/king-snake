@@ -1,0 +1,4 @@
+&lt;svg width=&quot;50&quot; height=&quot;50&quot; viewBox=&quot;0 0 50 50&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;&gt;
+  &lt;circle cx=&quot;25&quot; cy=&quot;25&quot; r=&quot;20&quot; fill=&quot;red&quot; /&gt;
+  &lt;path d=&quot;M25 5 Q30 0 35 5&quot; fill=&quot;green&quot; /&gt;
+&lt;/svg&gt;
