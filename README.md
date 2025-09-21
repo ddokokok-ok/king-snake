@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # King Snake 🐍👑
 
 A VSCode-themed Snake Game that brings the classic game into your favorite code editor interface!
@@ -45,3 +46,6 @@ MIT License - Feel free to use and modify as you wish!
 ---
 
 *Enjoy playing King Snake - where coding meets gaming!* 🎮💻
+=======
+# king-snake
+>>>>>>> ba65e3dc7046006c4fe6a4726566f0e410189691
